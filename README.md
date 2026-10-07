@@ -80,8 +80,6 @@ python fix-cuda-links.py
 python server.py
 ```
 
-This avoids mixing packages from another Python installation with the
-project's environment.
 
 The first run downloads the `large-v3` Whisper model (CTranslate2, roughly
 1.6 GB). Models are cached afterwards, so later starts are fast. Leave this
