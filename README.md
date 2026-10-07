@@ -262,6 +262,40 @@ When the popup's **Save audio file (debug)** toggle is on, a
 manually re-listening if a segment's text looks wrong. Transcription never
 needs it.
 
+## Where Files Are Stored
+
+### Extension exports
+
+The extension saves files through Firefox's download system, normally in your
+browser's default **Downloads** folder:
+
+- `thoughts-<gameId>-<timestamp>.json`
+- `thoughts-<gameId>-<timestamp>.txt`
+- Optional `.ogx` or `.webm` audio file when **Save audio file (debug)** is
+  enabled
+
+The extension does not save these files inside the project directory.
+
+### Server files
+
+The server does not save recorded audio or transcripts to disk. Audio is kept
+temporarily in memory while it is being transcribed. The completed transcript
+is returned to the extension, which creates the JSON and TXT downloads.
+
+The server does use or create these local files and directories:
+
+- Python virtual environment: `server/.venv/`
+- Downloaded Whisper model: normally in the Hugging Face cache, typically
+  `~/.cache/huggingface/hub/`
+- CUDA library configuration: `fix-cuda-links.py` updates the installed
+  CTranslate2 files inside `server/.venv/`; it does not create a separate
+  output file
+- Server logs: printed in the terminal; no log file is created by default
+
+The Whisper model cache can be moved by setting Hugging Face environment
+variables such as `HF_HOME` or `HUGGINGFACE_HUB_CACHE` before starting the
+server.
+
 ## Troubleshooting and FAQ
 
 **`libcublas.so.12 not found` on GPU.** CTranslate2's pip wheel does not
