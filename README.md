@@ -118,11 +118,25 @@ server.py)` until the server is up; the add-on reconnects automatically
 ### 3. Play
 
 Open a Lichess game and click the on-page **CTR: off** pill (or the popup's
-**Start** button). The browser asks for microphone permission the first time.
+**Start** button). The pill appears only when you are viewing an active
+Lichess game page; it is hidden on other Lichess pages. The browser asks for
+microphone permission the first time.
 Speak your thoughts as you play. Each thought is sent to the server after you
 stop speaking. Recording stops automatically when the game ends or when you
 click **Stop**. JSON and TXT exports are saved to your Downloads
 folder; an audio file is saved only when the debug option is enabled.
+
+#### Choose a language
+
+Select the language in the extension popup before clicking **Start**. English,
+Spanish, and German are currently available. The selected language is used by
+Whisper and by the chess vocabulary and legal-move hints.
+
+Select a specific language whenever possible. **Do not use `Auto` unless you
+need automatic language detection**: language detection can be less reliable
+for short thoughts, and `Auto` disables the language-specific chess hints.
+Start a new recording session after changing the language so the new setting
+is applied.
 
 ### Microphone recommendation
 
@@ -131,6 +145,19 @@ microphones usually provide lower latency and more consistent audio quality.
 Bluetooth headsets may introduce delay, compression, or aggressive noise
 processing, which can cause the recorder to split thoughts incorrectly or
 reduce transcription accuracy.
+
+Before using the extension, test your microphone in your operating system
+and confirm that the correct input device is selected. Make a short test
+recording and play it back to check the volume, background noise, and voice
+clarity. On Linux, `pactl list sources short` can be used to list available
+inputs, and tools such as `parecord` and `mplayer` can record and play back a
+test file.
+
+If a transcription does not sound right, enable **Save audio file (debug)**
+in the extension popup before recording another game. The extension will
+save the recorded audio alongside the JSON and TXT exports, allowing you to
+listen to the source audio and determine whether the issue is the microphone
+or the transcription. Audio is not saved by default.
 
 ## Optional Model Settings
 
@@ -151,15 +178,9 @@ Rules of thumb:
 | modern NVIDIA GPU (Turing / Ampere or newer) | `cuda` | `float16` |
 | older Pascal GPU (GTX 10xx, e.g. GTX 1060) | `cuda` | `int8` (default) |
 
-Pascal cards (GTX 1060 and similar) have no Tensor Cores and do **not**
-support `float16` or `int8_float16` in CTranslate2 — both are rejected at
-load time. `int8` is the right choice there and is already the default when
-the auto-detected device lands on such a card: the server auto-falls back
-instead of crashing. `large-v3` in `int8` uses only ~1 GB of VRAM on a GTX
-1060 and transcribes 3 s of audio in under 2 s.
-
-**CPU fallback** — if the GPU run ever misbehaves, just run
-`CTR_DEVICE=cpu python server.py` and everything works as before.
+**CPU fallback** — CPU inference is supported, but it is slower than GPU
+inference. If no compatible GPU is available, or if the GPU run misbehaves,
+run `CTR_DEVICE=cpu python server.py`.
 
 ## How Chess Recognition Works
 
@@ -174,6 +195,20 @@ The transcription engine uses two kinds of chess context to improve results:
 This context is applied automatically and does not need to be configured. If
 the position is unavailable, transcription still works using the general
 chess vocabulary.
+
+### Adding another language
+
+To add a language, update both the extension and the server:
+
+1. Add the language option to `extension/popup.html`.
+2. Add its chess terms to `VOCAB` in `server/chess_vocab.py`.
+3. Add translated prompt labels to `_LEAD_IN` and `MOVES_LEAD` in the same
+   file.
+4. Add translated piece names and castling/promotion phrases to `_PIECE`.
+5. Restart the server and reload the temporary extension in Firefox.
+
+The language code must be supported by faster-whisper. Keep the terminology
+consistent across the vocabulary list, legal-move phrases, and popup option.
 
 ## Export Format
 
@@ -254,6 +289,14 @@ crash — but on Pascal just use the default (`int8`).
 
 **First run is slow.** That's the model download. Subsequent starts are fast
 because the model is cached in your Hugging Face cache directory.
+
+**Why does Whisper run in a separate server instead of inside the extension?**
+Running Whisper directly in JavaScript inside Firefox requires a browser-
+compatible, relatively small model. In this environment, that model does not
+transcribe chess thoughts reliably enough. The local Python server can run the
+larger `large-v3` model with faster-whisper, which provides better accuracy,
+beam-search decoding, and chess-specific prompting while keeping all audio
+on your computer.
 
 ## License
 
