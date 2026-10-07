@@ -28,8 +28,8 @@ transcribed locally with [faster-whisper](https://github.com/SYSTRAN/faster-whis
 ## How It Works
 
 ```
-        ┌──────────────────────────── Firefox add-on ──────────────────────────┐
-        │                                                                      │
+        ┌──────────────────────────── Firefox add-on ─────────────────────────┐
+        │                                                                     │
         │  · microphone and voice detection                                   │
         │  · Lichess board and position tracking                              │
         │  · Start/Stop controls and recording settings                       │
@@ -37,11 +37,11 @@ transcribed locally with [faster-whisper](https://github.com/SYSTRAN/faster-whis
                                      │  local connection
                                      ▼
         ┌──────────────────────────── Python server ───────────────────────────┐
-        │  · receives each recorded thought                                   │
-        │  · uses the current chess position to improve recognition             │
-        │  · transcribes locally with Whisper on CPU or GPU                     │
-        │  · sends the finished transcript back to the add-on                   │
-        └───────────────────────────────────────────────────────────────────────┘
+        │  · receives each recorded thought                                    │
+        │  · uses the current chess position to improve recognition            │
+        │  · transcribes locally with Whisper on CPU or GPU                    │
+        │  · sends the finished transcript back to the add-on                  │
+        └──────────────────────────────────────────────────────────────────────┘
 ```
 
 While you play, the add-on listens for speech and separates it into
