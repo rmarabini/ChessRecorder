@@ -1,0 +1,53 @@
+body {
+  width: 260px;
+  font-family: sans-serif;
+  font-size: 13px;
+  margin: 0;
+  padding: 12px;
+}
+h1 { font-size: 14px; margin: 0 0 8px; }
+#status { margin-bottom: 6px; }
+#meter {
+  height: 8px;
+  background: #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+#meterFill {
+  height: 100%;
+  width: 0%;
+  background: #2e7d32;
+  transition: width 60ms linear;
+}
+#settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  border-top: 1px solid #ccc;
+  padding-top: 6px;
+  margin-bottom: 12px;
+  font-size: 11px;
+}
+#settings label { display: flex; flex-direction: column; gap: 2px; }
+#settings select, #settings input { font-size: 11px; width: 100%; box-sizing: border-box; }
+#settings label.checkline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+#settings label.checkline input { width: auto; }
+.seglist {
+  max-height: 160px;
+  overflow-y: auto;
+  border-top: 1px solid #ccc;
+  margin-bottom: 12px;
+  padding-top: 6px;
+  font-family: monospace;
+  font-size: 11px;
+}
+.seg { margin-bottom: 3px; color: #333; }
+.seg.text { color: #1a1a1a; font-style: italic; margin: 0 0 8px 12px; }
+.seg.text.pending { color: #999; }
+button { margin-right: 8px; padding: 4px 12px; }

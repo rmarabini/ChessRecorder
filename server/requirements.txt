@@ -1,0 +1,13 @@
+faster-whisper>=1.0.0
+websockets>=12.0
+numpy
+# legal-move prompt feature (FEN -> spoken move phrases for initial_prompt)
+python-chess
+# CUDA math libraries for GPU use (harmless if you run CPU-only).
+# Needed because CTranslate2's wheel does not bundle cuBLAS/cuDNN.
+nvidia-cublas-cu12
+nvidia-cudnn-cu12
+nvidia-cuda-runtime-cu12
+# patchelf CLI: used once to point ctranslate2's .so at the libraries above
+# (see the fix-cuda-links.py step in README; already applied in this venv).
+patchelf

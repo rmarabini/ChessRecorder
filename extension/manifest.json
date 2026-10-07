@@ -1,0 +1,34 @@
+{
+  "manifest_version": 2,
+  "name": "Chess Thought Recorder (Server ASR)",
+  "version": "0.1.0",
+  "description": "Records spoken thoughts while playing chess on Lichess. Transcribes them via a local Python (faster-whisper) server.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "chess-thought-recorder-server@local",
+      "strict_min_version": "115.0"
+    }
+  },
+  "permissions": [
+    "storage",
+    "https://lichess.org/*"
+  ],
+  "background": {
+    "page": "background.html",
+    "persistent": true
+  },
+  "browser_action": {
+    "default_title": "Chess Thought Recorder (Server ASR)",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://lichess.org/*"],
+      "js": ["lichess.js", "content.js"]
+    }
+  ],
+  "icons": {
+    "48": "icons/icon48.png",
+    "96": "icons/icon96.png"
+  }
+}
