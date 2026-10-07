@@ -235,6 +235,30 @@ Files are named `thoughts-<gameId>-<timestamp>.ext` or
 `thoughts-<timestamp>.ext` when the game id is unavailable. The timestamp
 is derived from the recording start time.
 
+### Game ID and game URL
+
+Lichess uses two URL forms for the same game:
+
+| URL form | Example |
+|---|---|
+| During the game | `https://lichess.org/C7CaK6cO` |
+| Afterward / private link | `https://lichess.org/C7CaK6cOKxsA` |
+
+The **first 8 characters** are the actual Lichess game ID. The longer
+12-character URL used for a private or unlisted link adds a 4-character
+token; it can be reduced to its first 8 characters for public/API access.
+
+The exported `game_id` and the `thoughts-<gameId>-<timestamp>` file name use
+the canonical 8-character game ID:
+
+| URL | Game ID |
+|---|---|
+| `https://lichess.org/C7CaK6cO` | `C7CaK6cO` |
+| `https://lichess.org/C7CaK6cOKxsA` | `C7CaK6cO` (first 8 characters) |
+
+The exported `game_url` preserves the URL that was open when the recording
+was made.
+
 ### JSON
 
 ```json
