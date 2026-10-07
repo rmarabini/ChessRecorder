@@ -119,7 +119,7 @@ server.py)` until the server is up; the add-on reconnects automatically
 ### 3. Play
 
 Open a Lichess game and click the on-page **CTR: off** pill (or the popup's
-**Start** button). The pill appears only when you are viewing an active
+**Start** button). The pill appears (at the page left bottom) only when you are viewing an active
 Lichess game page; it is hidden on other Lichess pages. The browser asks for
 microphone permission the first time.
 Speak your thoughts as you play. Each thought is sent to the server after you
