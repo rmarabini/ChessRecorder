@@ -80,6 +80,16 @@ python fix-cuda-links.py
 python server.py
 ```
 
+If your system has another Python distribution active, such as Conda or
+ChimeraX, start the server explicitly with the virtual-environment Python:
+
+```bash
+./.venv/bin/python server.py
+```
+
+This avoids mixing packages from another Python installation with the
+project's environment.
+
 The first run downloads the `large-v3` Whisper model (CTranslate2, roughly
 1.6 GB). Models are cached afterwards, so later starts are fast. Leave this
 running while you play — it listens on
@@ -137,6 +147,24 @@ need automatic language detection**: language detection can be less reliable
 for short thoughts, and `Auto` disables the language-specific chess hints.
 Start a new recording session after changing the language so the new setting
 is applied.
+
+#### Recording controls
+
+The extension popup provides two controls for adjusting thought detection:
+
+- **Sensitivity** controls how easily the extension treats sound as speech.
+  Increase it if your voice is not being detected; decrease it if background
+  noise starts recordings unexpectedly.
+- **Silence** sets how long you must stop speaking before the current thought
+  is ended and sent for transcription. A shorter value creates separate
+  thoughts more quickly; a longer value is better when you pause while
+  thinking.
+
+The **sound-level bar** shows the microphone level detected by the extension
+in real time. Use it to check that the selected microphone is receiving your
+voice and to compare your voice level with the background noise. Adjust the
+microphone input volume or the sensitivity setting if the bar does not react
+reliably to your speech.
 
 ### Microphone recommendation
 
@@ -331,6 +359,24 @@ transcribe chess thoughts reliably enough. The local Python server can run the
 larger `large-v3` model with faster-whisper, which provides better accuracy,
 beam-search decoding, and chess-specific prompting while keeping all audio
 on your computer.
+
+**NumPy fails with `No module named numpy.core._multiarray_umath`.** This
+usually means that `python` is pointing to another Python installation, such
+as ChimeraX or Conda, instead of this project's virtual environment. From the
+`server/` directory, run:
+
+```bash
+source .venv/bin/activate
+which python
+python -c "import sys, numpy; print(sys.executable); print(numpy.__file__)"
+python server.py
+```
+
+`which python` should point to `server/.venv/bin/python`, and NumPy should be
+loaded from `server/.venv/lib/.../site-packages`. If activation does not
+change the interpreter, use `./.venv/bin/python server.py` directly. Do not
+mix packages from a system, Conda, or ChimeraX Python installation with this
+virtual environment.
 
 ## License
 
