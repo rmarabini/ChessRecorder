@@ -80,13 +80,6 @@ python fix-cuda-links.py
 python server.py
 ```
 
-If your system has another Python distribution active, such as Conda or
-ChimeraX, start the server explicitly with the virtual-environment Python:
-
-```bash
-./.venv/bin/python server.py
-```
-
 This avoids mixing packages from another Python installation with the
 project's environment.
 
@@ -362,7 +355,7 @@ on your computer.
 
 **NumPy fails with `No module named numpy.core._multiarray_umath`.** This
 usually means that `python` is pointing to another Python installation, such
-as ChimeraX or Conda, instead of this project's virtual environment. From the
+as  Conda, instead of this project's virtual environment. From the
 `server/` directory, run:
 
 ```bash
