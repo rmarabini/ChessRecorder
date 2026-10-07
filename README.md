@@ -160,11 +160,11 @@ The extension popup provides two controls for adjusting thought detection:
   thoughts more quickly; a longer value is better when you pause while
   thinking.
 
-The **sound-level bar** shows the microphone level detected by the extension
-in real time. Use it to check that the selected microphone is receiving your
-voice and to compare your voice level with the background noise. Adjust the
-microphone input volume or the sensitivity setting if the bar does not react
-reliably to your speech.
+The **sound-level bar** is activated only while recording and shows the
+microphone level detected by the extension in real time. Use it to check that
+the selected microphone is receiving your voice and to compare your voice
+level with the background noise. Adjust the microphone input volume or the
+sensitivity setting if the bar does not react reliably to your speech.
 
 ### Microphone recommendation
 
