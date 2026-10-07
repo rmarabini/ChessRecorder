@@ -1,23 +1,21 @@
 # Chess Thought Recorder
 
-A Firefox add-on plus a local Python server that records your spoken
-thoughts while you play on Lichess and transcribes them locally with
-[faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2).
-Each thought is captured together with the position (FEN) and move number
-at the moment it started, then transcribed on your own machine — no cloud
-involved.
+A Firefox add-on and local Python server for recording spoken thoughts while
+you play on Lichess. Each thought is associated with the board position,
+move number, and side to move at the moment it starts, then
+transcribed locally with [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
+(CTranslate2). Audio is never sent to a cloud transcription service.
 
 ## Features
 
-- **Mic capture + voice-activity detection** — speak as you play; each
-  thought is automatically cut off when you stop talking.
+- **Automatic thought detection** — speak as you play; thoughts are detected
+  and separated automatically after silence.
 - **Per-thought context** — every segment records the FEN and move number
   (and side to move) of the board position when the thought started.
-- **Chess-aware transcription** — the server feeds Whisper's
-  `initial_prompt` with the *legal moves of the current position* (rendered
-  as spoken phrases) plus a chess-vocabulary term list, in English,
-  Spanish, or German. This measurably improves accuracy on openings, piece
-  names, and tactics.
+- **Chess-aware transcription** — the server uses the current legal moves and
+  common chess terms to help recognize openings, piece names, and tactics in
+  English, Spanish, or German. This improves recognition but does not replace
+  clear audio.
 - **Fully local & private** — all audio and transcription stay on your
   machine over a loopback WebSocket. Nothing is sent to a server on the
   internet.
@@ -27,57 +25,46 @@ involved.
   game end (or manually). An optional audio file is written only when the
   "Save audio file (debug)" toggle is on.
 
-## How it works
+## How It Works
 
 ```
-        ┌─────────────────────────── Firefox add-on ───────────────────────────┐
+        ┌──────────────────────────── Firefox add-on ──────────────────────────┐
         │                                                                      │
-        │  content.js                 background.js          (popup.html)      │
-        │  · microphone               · WebSocket relay      · Start/Stop      │
-        │  · VAD (thought cuts)  ───► · auto-reconnect       · sensitivity,    │
-        │  · Lichess board read      · PCM/segment bridge    · silence, lang,  │
-        │    (FEN, move #)           │                                    │    │
+        │  · microphone and voice detection                                   │
+        │  · Lichess board and position tracking                              │
+        │  · Start/Stop controls and recording settings                       │
         └────────────────────────────│────────────────────────────────────────┘
-                                     │  ws://127.0.0.1:8765  (JSON messages)
+                                     │  local connection
                                      ▼
-        ┌─────────────────────────── Python server ────────────────────────────┐
-        │  server.py                                                            │
-        │  · PCM ring buffer (16 kHz mono) + per-session "epoch" tagging        │
-        │  · one transcription at a time (single job queue)                     │
-        │  · chess_vocab.py: legal moves (python-chess) + vocabulary prompt     │
-        │  · faster-whisper (CTranslate2) on CUDA or CPU                        │
-        │        └──► transcript returned to the add-on, tagged by segment id   │
+        ┌──────────────────────────── Python server ───────────────────────────┐
+        │  · receives each recorded thought                                   │
+        │  · uses the current chess position to improve recognition             │
+        │  · transcribes locally with Whisper on CPU or GPU                     │
+        │  · sends the finished transcript back to the add-on                   │
         └───────────────────────────────────────────────────────────────────────┘
 ```
 
-The content script captures 16 kHz mono PCM and streams it to the
-background page, which relays it to the server. When the VAD decides you've
-finished a thought, it sends a `transcribe_segment` request carrying the
-start/end sample range, the chosen language, and the FEN of the position.
-The server slices the buffered audio (with a small lead/tail pad), builds a
-chess-aware prompt, runs faster-whisper in a worker thread, and returns the
-text. Because only one segment transcribes at a time and audio arrives in
-short clips, memory and CPU/GPU use stay flat and predictable.
+While you play, the add-on listens for speech and separates it into
+individual thoughts. Each thought is matched with the board position where
+it began and sent to the local server. The server converts it to text and
+returns the result to the add-on. Everything happens on your computer, and
+audio from a previous game cannot be mixed into the current game.
 
 ## Project layout
 
 ```
-extension/   Firefox add-on
-    manifest.json      add-on metadata (Mic, Lichess host permission)
-    content.js         mic, VAD, Lichess board reading, export
-    lichess.js         Lichess board access (FEN, move number, game id)
-    background.js      WebSocket bridge to the server
-    popup.html/js/css  UI: start/stop, sensitivity, silence, language, save-audio
-    icons/             icon assets
-
-server/      Python WebSocket ASR server
-    server.py          WebSocket server + transcription pipeline
-    chess_vocab.py     vocabulary lists + legal-move → spoken phrases, prompt builder
-    fix-cuda-links.py  one-time patch so CTranslate2 finds the CUDA math libs
-    requirements.txt   Python dependencies
+extension/   Firefox add-on for recording and exporting thoughts
+server/      Local Python server for Whisper transcription
 ```
 
-## Quick start
+## Quick Start
+
+### Requirements
+
+- Firefox 115 or newer
+- Python 3.9 or newer
+- A microphone (a wired/cable microphone is recommended)
+- An NVIDIA GPU is optional; CPU inference is supported
 
 ### 1. Start the server
 
@@ -87,53 +74,73 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# one-time, GPU only (see Troubleshooting):
+# one-time, only needed for CUDA/GPU inference (see Troubleshooting):
 python fix-cuda-links.py
 
 python server.py
 ```
 
-The first run downloads the `medium` Whisper model (CTranslate2, a few
-hundred MB; `large-v3` adds ~1.6 GB). Models are cached afterwards, so later
-starts are fast. Leave this running while you play — it listens on
+The first run downloads the `large-v3` Whisper model (CTranslate2, roughly
+1.6 GB). Models are cached afterwards, so later starts are fast. Leave this
+running while you play — it listens on
 `ws://127.0.0.1:8765`. You should see:
 
 ```
 device=auto -> 'cuda' (CUDA available: True)
-Loading faster-whisper model 'medium' (compute_type=int8) on cuda — first run downloads it, then it's cached locally...
-Model ready in ...s (device=cuda, compute_type=int8)
+Loading faster-whisper model 'large-v3' (compute_type=float16) on cuda — first run downloads it, then it's cached locally...
+Model ready in ...s (device=cuda, compute_type=float16)
 listening on ws://127.0.0.1:8765
 ```
+
+Wait until the server prints **`Model ready in ...s`** before continuing.
+The Whisper model must finish loading before the extension can transcribe
+your thoughts. Keep this terminal running while you play.
 
 ### 2. Load the extension
 
 Firefox → `about:debugging#/runtime/this-firefox` → **Load Temporary
 Add-on** → select `extension/manifest.json`.
 
+Because this is currently loaded as a temporary add-on, Firefox removes it
+when the browser is restarted. Reload `extension/manifest.json` from
+`about:debugging` after each Firefox reboot. A persistent, installable version
+of the extension will be created once the project has been fully debugged.
+
 Open the popup. The status line shows `ASR server: not running (start
 server.py)` until the server is up; the add-on reconnects automatically
 (with backoff) once it starts — no need to reload the add-on.
 
+> **Firefox 153 and newer:** Firefox may ask for permission to let the
+> extension access a local device or service when it first connects to
+> `127.0.0.1`. Click **Allow**. This is Firefox's Local Network Access
+> protection; the server handles the required preflight request.
+
 ### 3. Play
 
-Open a Lichess game and click the on-page "record" button(or the popup's **Start**
-button) once — the browser asks for microphone permission the first time.
-Speak your thoughts as you play. Each one is sent to the server the moment
-the VAD detects you've finished, and transcribed there. Recording stops
-automatically when the game ends (or when you stop it manually), and a JSON
-+ TXT file (plus an audio file only if the debug toggle is on) is saved to
-your Downloads folder. You will get better results with a "cable" microphone
-(vs bluetooth)
+Open a Lichess game and click the on-page **CTR: off** pill (or the popup's
+**Start** button). The browser asks for microphone permission the first time.
+Speak your thoughts as you play. Each thought is sent to the server after you
+stop speaking. Recording stops automatically when the game ends or when you
+click **Stop**. JSON and TXT exports are saved to your Downloads
+folder; an audio file is saved only when the debug option is enabled.
 
-## Model & device configuration
+### Microphone recommendation
 
-Defaults are `medium` on an auto-detected device (CUDA if available,
-otherwise CPU). Override per run without editing code via environment
-variables:
+Use a wired/cable microphone rather than Bluetooth when possible. Wired
+microphones usually provide lower latency and more consistent audio quality.
+Bluetooth headsets may introduce delay, compression, or aggressive noise
+processing, which can cause the recorder to split thoughts incorrectly or
+reduce transcription accuracy.
+
+## Optional Model Settings
+
+The default model is `large-v3`, running on an auto-detected device (CUDA if
+available, otherwise CPU). Override the model, device, or compute type per
+run without editing code via environment variables:
 
 ```bash
-# best accuracy (large-v3), on the GPU:
-CTR_MODEL=large-v3 python server.py
+# Example: use the smaller medium model on the GPU:
+CTR_MODEL=medium python server.py
 ```
 
 Rules of thumb:
@@ -154,32 +161,25 @@ instead of crashing. `large-v3` in `int8` uses only ~1 GB of VRAM on a GTX
 **CPU fallback** — if the GPU run ever misbehaves, just run
 `CTR_DEVICE=cpu python server.py` and everything works as before.
 
-## Chess-aware prompting
+## How Chess Recognition Works
 
-Two things bias Whisper's decoding toward chess:
+The transcription engine uses two kinds of chess context to improve results:
 
-1. **Vocabulary term lists** — general piece / tactic / strategy terms and
-   common opening names (en/es/de). Whisper conditions its next-token
-   predictions on this prompt text, so it is more likely to emit "Caro-Kann"
-   than "caro cálida" when it actually hears that opening. This is biasing,
-   not dictation — it won't invent words that weren't said.
-2. **Legal moves of the position** — each segment carries the FEN of the
-   board when the thought started. The server renders that position's legal
-   moves as *spoken phrases* in the segment's language
-   ("caballo a f6, peón a d5, enroque corto…") and prepends them to the
-   prompt.
+1. **Chess vocabulary** — common piece, tactic, strategy, and opening names
+   in English, Spanish, and German.
+2. **The current position** — the add-on provides the position where the
+   thought began, allowing the server to consider legal moves such as
+   "knight to f6" or "peón a d5" while transcribing.
 
-Whisper caps the combined `initial_prompt` at **418 tokens**. The
-position-specific move list always wins the budget; generic vocabulary is
-trimmed from the tail if needed (openings / niche terms go first, core
-piece / tactic terms survive). All of this is transparent — nothing to
-configure — and it degrades gracefully: no FEN, unknown language, or
-missing `python-chess` simply means the vocabulary-only prompt is used.
+This context is applied automatically and does not need to be configured. If
+the position is unavailable, transcription still works using the general
+chess vocabulary.
 
-## Export format
+## Export Format
 
-Files are named `thoughts-<gameId>-<timestamp>.ext` (or
-`thoughts-<timestamp>.ext` if the game id can't be read).
+Files are named `thoughts-<gameId>-<timestamp>.ext` or
+`thoughts-<timestamp>.ext` when the game id is unavailable. The timestamp
+is derived from the recording start time.
 
 ### JSON
 
@@ -227,7 +227,7 @@ When the popup's **Save audio file (debug)** toggle is on, a
 manually re-listening if a segment's text looks wrong. Transcription never
 needs it.
 
-## Troubleshooting / FAQ
+## Troubleshooting and FAQ
 
 **`libcublas.so.12 not found` on GPU.** CTranslate2's pip wheel does not
 bundle the CUDA math libraries (cuBLAS / cuDNN). The `nvidia-*-cu12` wheels
